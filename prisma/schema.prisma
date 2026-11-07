@@ -1,0 +1,86 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                Int              @id @default(autoincrement())
+  name              String
+  email             String           @unique
+  role              Role             @default(REPORTER)
+  is_email_verified Boolean          @default(false)
+  slug              String
+  password          String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  deletedAt         DateTime?
+
+  Token             Token[]          // One-to-many relationship to Token
+  IncidentReport    IncidentReport[]
+
+  @@map("user")
+}
+
+model IncidentReport {
+  id              Int            @id @default(autoincrement())
+  referenceNumber String         @unique @map("reference_number")
+  title           String
+  category        ReportCategory
+  description     String         @db.Text
+  incidentDate    DateTime       @map("incident_date")
+  status          ReportStatus   @default(DRAFT)
+  adminNotes      String?        @db.Text @map("admin_notes")
+  reporterId      Int            @map("reporter_id")
+  reporter        User           @relation(fields: [reporterId], references: [id])
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
+
+  @@map("incident_report")
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  RESOLVED
+}
+
+enum ReportCategory {
+  FRAUD
+  HARASSMENT
+  SAFETY_VIOLATION
+  MISUSE_OF_RESOURCES
+  CORRUPTION
+  CONFLICT_OF_INTEREST
+  DATA_PRIVACY_BREACH
+  OTHER
+}
+
+model Token {
+  id          Int       @id @default(autoincrement())
+  token       String    @db.Text
+  type        TokenType
+  expires     DateTime
+  blacklisted Boolean
+  createdAt   DateTime  @default(now())
+  user        User      @relation(fields: [user_id], references: [id])
+  user_id     Int
+  deletedAt   DateTime?
+
+  @@map("token")
+}
+
+enum Role {
+  ADMIN
+  REPORTER
+}
+
+enum TokenType {
+  ACCESS
+  REFRESH
+}
